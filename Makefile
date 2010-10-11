@@ -22,9 +22,4 @@ $(TEST_ACTUAL): a.exe $(TEST_INPUT)
 test: a.exe $(TEST_ACTUAL) $(TEST_INPUT) $(TEST_EXPECTED)
 	@echo "Comparing..."
 	@$(TEST_CMP) -u $(TEST_ACTUAL) $(TEST_EXPECTED) \
-		&& echo "pass!" \
-		|| ( \
-			echo "failed!"; \
-			cat $(TEST_ACTUAL); \
-		)
-
+		&& echo "pass!"
