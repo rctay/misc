@@ -16,7 +16,7 @@ a.exe: $(SOURCE)
 $(TEST_ACTUAL): a$(EXE) $(TEST_INPUT)
 	@echo "Collecting output..."
 	cat $(TEST_INPUT) \
-	| ./a.exe \
+	| ./a.exe 2>&1 \
 	| tr -d "\r" \
 	> $(TEST_ACTUAL)
 
