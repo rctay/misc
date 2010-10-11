@@ -1,6 +1,6 @@
 #!/bin/sh
 CC=gcc
-SRC=double_digits.c
+SRC=foo.c
 
 $CC -Wall -g $SRC && (
 	cat input | ./a.exe \
