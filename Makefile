@@ -3,7 +3,7 @@ CFLAGS=-Wall
 SOURCE=foo.c
 
 TEST_EXPECTED=exp
-TEST_ACTUAL=act
+TEST_ACTUAL=actual
 TEST_INPUT=input
 TEST_CMP=diff
 
