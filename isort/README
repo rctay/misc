@@ -1,0 +1,11 @@
+This illustrates the speed performance we can gain from NOT
+swapping adjacent elements when doing insertion sort.
+
+Instead, we find out the final position of each element, then
+shift the entire affected block by 1 position.
+
+It gives a slightly more than 2x speed improvement over the 
+conventional insertion sort.
+
+
+NOTE: valgrind shows a memory leak when compiled with -pg flags.
