@@ -83,11 +83,12 @@ void insertionSortSwap(int arr[], int sz);
 enum tsError{
 	GEN_ERR = 1, // Error generating random number file
 	FILE_ERR = 2, // Error opening file
-	HASH_ERR = 4, // Error comparing hash table to first array
-	MEM_ERR = 8, // Error allocating memory for 2nd array
-	FIRST_SORT_ERR = 16, // First insertion sort fails
-	SEC_SORT_ERR = 32, // Second insertion sort fails
-	DIFF_ERR = 64
+	ELEM_SZ_ERR = 4, // Wrong number of random numbers read in
+	HASH_ERR = 8, // Error comparing hash table to first array
+	MEM_ERR = 16, // Error allocating memory for 2nd array
+	FIRST_SORT_ERR = 32, // First insertion sort fails
+	SEC_SORT_ERR = 64, // Second insertion sort fails
+	DIFF_ERR = 128 
 };
 
 
@@ -230,7 +231,12 @@ void testSort()
 	}
 
 	if(ret & FILE_ERR){
-		printf("Error opening file.\n");
+		printf("Error opening file for reading in random numbers.\n");
+		return;
+	}
+
+	if(ret & ELEM_SZ_ERR){
+		printf("Incorrect number of random numbers read in.\n");
 		return;
 	}
 
@@ -308,6 +314,13 @@ enum tsError rtestSort()
 	while(fread(&elem, elemSz, 1, infile) > 0 && cnt < TEST_NUM_ELEMS){
 		HashInsert(&myTable, elem);
 		myArr[cnt++] = elem;
+	}
+
+	
+	/* Incorrect number of random numbers read in */
+	if(cnt != TEST_NUM_ELEMS){
+		ret |= ELEM_SZ_ERR;
+		goto cleanup;
 	}
 
 	/* Missing entries in hash table (Shouldn't happen) */
