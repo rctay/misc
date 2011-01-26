@@ -85,7 +85,7 @@ enum tsError{
 	FILE_ERR = 2, // Error opening file
 	ELEM_SZ_ERR = 4, // Wrong number of random numbers read in
 	HASH_ERR = 8, // Error comparing hash table to first array
-	MEM_ERR = 16, // Error allocating memory for 2nd array
+	MEM_ERR = 16, // Error allocating memory
 	FIRST_SORT_ERR = 32, // First insertion sort fails
 	SEC_SORT_ERR = 64, // Second insertion sort fails
 	DIFF_ERR = 128 
@@ -305,14 +305,19 @@ enum tsError rtestSort()
 
 	int myArr[TEST_NUM_ELEMS];
 	int *copyArr = NULL;
-	struct HTable myTable;
+	struct HTable *myTable;
 
-	HashInit(&myTable, HTABLE_SZ, HashFn);
+	myTable = HashNew(HTABLE_SZ, HashFn);
+	if(myTable == NULL){
+		ret |= MEM_ERR;
+		return ret;
+	}
+
 
 	cnt = 0;
 	elemSz = sizeof(int);
 	while(fread(&elem, elemSz, 1, infile) > 0 && cnt < TEST_NUM_ELEMS){
-		HashInsert(&myTable, elem);
+		HashInsert(myTable, elem);
 		myArr[cnt++] = elem;
 	}
 
@@ -324,7 +329,7 @@ enum tsError rtestSort()
 	}
 
 	/* Missing entries in hash table (Shouldn't happen) */
-	if(compareTable(&myTable, myArr, cnt) != 0){
+	if(compareTable(myTable, myArr, cnt) != 0){
 		ret |= HASH_ERR;
 		goto cleanup;
 	}
@@ -342,14 +347,14 @@ enum tsError rtestSort()
 
 	/* First insertion sort algorithm */
 	insertionSortSwap(myArr, cnt);
-	if(compareTable(&myTable, myArr, cnt) != 0){
+	if(compareTable(myTable, myArr, cnt) != 0){
 		ret |= FIRST_SORT_ERR;
 		goto cleanup;
 	}
 
 	/* Second insertion sort algorithm */
 	insertionSort(copyArr, cnt);
-	if(compareTable(&myTable, copyArr, cnt) != 0){
+	if(compareTable(myTable, copyArr, cnt) != 0){
 		ret |= SEC_SORT_ERR;
 		goto cleanup;
 	}
@@ -367,7 +372,7 @@ cleanup:
 		free(copyArr);
 	}
 
-	HashFree(&myTable);
+	HashFree(myTable);
 	fclose(infile);
 	return ret;
 }
@@ -377,14 +382,27 @@ cleanup:
 This is assuming the hash table only contains the array's entries */
 int compareTable(struct HTable *t, int *arr, int sz)
 {
-	int i;
+	int i, ret;
+	ret = 0;
+
 	for(i = 0; i < sz; ++i){
-		if(!HashSearch(t, arr[i])){
-			return -1;
+		/* NOTE: using HashUpdateSearch here to update the counter 
+		field inside each node for search hits */
+		if(HashUpdateSearch(t, arr[i]) != 0){
+			ret = -1;
+			goto cleanup;
 		}
 	}
 
-	return 0;
+	/* Checks whether counter == total for all nodes in table */
+	if(HashCheck(t) != 0){
+		ret = -1;
+		goto cleanup;
+	}
+
+cleanup:
+	HashCntReset(t);
+	return ret;
 }
 
 
