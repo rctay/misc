@@ -1,13 +1,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "htable.h"
+#include "genrandom.h"
 
 /* CREDITS to rc who made me think of spending a little time
 doing this. I probably learnt more things in this process.
 */
 
 
-/* This program has 2 insertion sort functions:
+/* 
+
+------------------ INSTRUCTIONS ---------------------------
+Now updated with hash table and test functions.
+
+Compile like this:
+
+$gcc -o [whateverfile] insertionSort.c htable.c genrandom.c
+
+
+
+
+------------------ SUMMARY -------------------------------
+This program has 2 insertion sort functions:
 
 1. Traditional Insertion Sort which swaps adjacent elements.
 2. Insertion Sort which does not swap adjacent elements
@@ -64,14 +79,32 @@ void insertionSortSwap(int arr[], int sz);
 #define SWAP(p, q, type) type tmp = *p; *p = *q; *q = tmp
 
 
-/* 
-testSort: Used on small array to see the sort works.
+/* tsError, for errors in rtestSort() function */
+enum tsError{
+	GEN_ERR = 1, // Error generating random number file
+	FILE_ERR = 2, // Error opening file
+	HASH_ERR = 4, // Error comparing hash table to first array
+	MEM_ERR = 8, // Error allocating memory for 2nd array
+	FIRST_SORT_ERR = 16, // First insertion sort fails
+	SEC_SORT_ERR = 32, // Second insertion sort fails
+	DIFF_ERR = 64
+};
+
+
+/* Testing functions:
+
+testSort: our test driver function
+rtestSort: the real test function
 profSort: Used on large arrays for profiling purposes.
+compareTable: Compares an array to a hash table
+compareArrays: Compares 2 arrays elem wise up to cnt elems
 */
 
 void testSort();
+enum tsError rtestSort();
 void profileSort();
-
+int compareTable(struct HTable *t, int *arr, int sz);
+int compareArrays(int *first, int *sec, int sz);
 
 
 int main(void)
@@ -79,7 +112,7 @@ int main(void)
 	/* Uncomment the line below this section to use the test function
 	which show the 2 insertion sorts working on small arrays.*/
 
-	//testSort();
+	testSort();
 
 
 	/* Uncomment the line below this section for profiling purposes.
@@ -177,23 +210,184 @@ void insertionSort(int arr[], int sz)
 		arr[j+1] = key;
 	}
 }
-#define SAMP_SZ 10
 
+
+
+/* Tests the insertion sort functions */
 void testSort()
 {
-	int arr1[SAMP_SZ] = {7, 1, 13, 5, 9, 2, 64, 8, 11, 1};
-	int arr2[SAMP_SZ] = {7, 1, 13, 5, 9, 2, 64, 8, 11, 1};
+	enum tsError ret;
+	ret = rtestSort();
 
-	insertionSortSwap(arr1, SAMP_SZ);
-	insertionSort(arr2, SAMP_SZ);
+	if(ret == 0){
+		printf("Test passed.\n");
+		return;
+	}
 
-	printf("First array:\n");
-	printArray(arr1, SAMP_SZ);
+	if(ret & GEN_ERR){
+		printf("Error generating random number file.\n");
+		return;
+	}
 
-	printf("Second array:\n");
-	printArray(arr2, SAMP_SZ);
+	if(ret & FILE_ERR){
+		printf("Error opening file.\n");
+		return;
+	}
+
+	if(ret & HASH_ERR){
+		printf("Comparison between array and hash table after "
+		"reading in the infile failed.\n");
+		return;
+	}
+
+	if(ret & MEM_ERR){
+		printf("Error allocating memory for secondary array.\n");
+		return;
+	}
+
+	if(ret & FIRST_SORT_ERR){
+		printf("First insertion sort failed.\n");
+		return;
+	}
+
+	if(ret & SEC_SORT_ERR){
+		printf("Second insertion sort failed.\n");
+		return;
+	}
+
+	if(ret & DIFF_ERR){
+		printf("The result of the 2 sorts are different.\n");
+		return;
+	}
 }
 
+
+/* Tests our insertion sort algorithms */
+enum tsError rtestSort()
+{
+	/* TEST_NUM_ELEMS - number of random numbers we will generate.
+	TEST_MAX_ELEM - Maximum size of elements 
+	HTABLE_SZ - size of hash table */
+	#define TEST_NUM_ELEMS 10000
+	#define TEST_MAX_ELEM 10000
+	#define HTABLE_SZ 4567
+
+	int i, elem, cnt;
+	size_t elemSz;
+	enum tsError ret;
+	memset(&ret, 0, sizeof(enum tsError));
+
+	const char *inputFile = "randNums.txt";
+	if(genRandom(inputFile, TEST_NUM_ELEMS, TEST_MAX_ELEM) != 0){
+		ret |= GEN_ERR;
+		return ret;
+	}
+
+	FILE *infile = fopen(inputFile, "r");
+
+	if(infile == NULL){
+		fprintf(stderr, "Unable to open %s for reading.\n", inputFile);
+		ret |= FILE_ERR;
+		return ret;
+	}
+
+
+	/* read the TABLE_SZ random numbers from randNums.txt into 
+	myArr and the hash table.
+	
+	The hash table is used for verification purposes */
+
+	int myArr[TEST_NUM_ELEMS];
+	int *copyArr = NULL;
+	struct HTable myTable;
+
+	HashInit(&myTable, HTABLE_SZ, HashFn);
+
+	cnt = 0;
+	elemSz = sizeof(int);
+	while(fread(&elem, elemSz, 1, infile) > 0 && cnt < TEST_NUM_ELEMS){
+		HashInsert(&myTable, elem);
+		myArr[cnt++] = elem;
+	}
+
+	/* Missing entries in hash table (Shouldn't happen) */
+	if(compareTable(&myTable, myArr, cnt) != 0){
+		ret |= HASH_ERR;
+		goto cleanup;
+	}
+
+	copyArr = malloc(cnt * sizeof(int));
+	if(copyArr == NULL){
+		ret |= MEM_ERR;
+		goto cleanup;
+	}
+
+	/* Initialize copy array */
+	for(i = 0; i < cnt; ++i){
+		copyArr[i] = myArr[i];
+	}
+
+	/* First insertion sort algorithm */
+	insertionSortSwap(myArr, cnt);
+	if(compareTable(&myTable, myArr, cnt) != 0){
+		ret |= FIRST_SORT_ERR;
+		goto cleanup;
+	}
+
+	/* Second insertion sort algorithm */
+	insertionSort(copyArr, cnt);
+	if(compareTable(&myTable, copyArr, cnt) != 0){
+		ret |= SEC_SORT_ERR;
+		goto cleanup;
+	}
+
+
+	/* Compare the 2 arrays */
+	if(compareArrays(myArr, copyArr, cnt) != 0){
+		ret |= DIFF_ERR;
+	}
+
+
+cleanup:
+	/* I hope the Velociraptor doesn't come */
+	if(copyArr){
+		free(copyArr);
+	}
+
+	HashFree(&myTable);
+	fclose(infile);
+	return ret;
+}
+
+
+/* Compares an array against a hash table
+This is assuming the hash table only contains the array's entries */
+int compareTable(struct HTable *t, int *arr, int sz)
+{
+	int i;
+	for(i = 0; i < sz; ++i){
+		if(!HashSearch(t, arr[i])){
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+
+/* Does a pairwise comparison of first and sec arrays up to sz elems.
+Returns 0 on success, -1 on failure */
+int compareArrays(int *first, int *sec, int sz)
+{
+	int i;
+	for(i = 0; i < sz; ++i){
+		if(first[i] != sec[i]){
+			return -1;
+		}
+	}
+
+	return 0;
+}
 
 
 /* Sort function to be used for profiling.
