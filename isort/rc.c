@@ -34,6 +34,13 @@ int read_loop(int **input) {
 	return size;
 }
 
+void copy_array(const int *from, int *dest, int size) {
+	int i;
+
+	for (i = 0; i < size; i++)
+		*(dest++) = *(from++);
+}
+
 void print_array(int *input, int size) {
 	int i;
 	for (i = 0; i < size; i++)
@@ -42,7 +49,7 @@ void print_array(int *input, int size) {
 }
 
 int main() {
-	int *input, size;
+	int *input, *to_sort, size;
 	int ret = 0;
 	if ((ret = read_loop(&input)) < 0) {
 		fprintf(stderr, "read loop failed\n");
@@ -50,7 +57,15 @@ int main() {
 	}
 
 	size = ret;
-	insertionSortSwap(input, size);
-	print_array(input, size);
+	to_sort = malloc(size * sizeof(int));
+	if (!to_sort) {
+		fprintf(stderr, "malloc failed\n");
+		return -1;
+	}
+
+	copy_array(input, to_sort, size);
+	insertionSortSwap(to_sort, size);
+	print_array(to_sort, size);
+
 	return 0;
 }
