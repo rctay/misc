@@ -35,7 +35,8 @@ int read_loop(int **input) {
 void print_array(int *input, int size) {
 	int i;
 	for (i = 0; i < size; i++)
-		printf("index=%d\tvalue=%d\n", i, *(input++));
+		printf("%s%d", i ? "," : "", *(input++));
+	printf("\n");
 }
 
 int main() {
