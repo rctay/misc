@@ -1,26 +1,35 @@
 CC = gcc
-CFLAGS = -pg
-TARGET = insertionSort
-TARGETSRC = insertionSort.c
-SRC = genrandom.c testfuncs.c isort.c htable.c
+CFLAGS = -Wall
+TARGET = a.exe
+TARGETSRC = rc.c
+SRC = isort.c
 OBJS = $(SRC:.c=.o)
 HDRS = $(SRC:.c=.h)
 
+TEST_EXPECTED=exp
+TEST_ACTUAL=actual
+TEST_INPUT=input
+TEST_CMP=diff
+
+all: test
 
 $(TARGET): $(TARGETSRC) $(HDRS) $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) $(TARGETSRC) -o $@
-
-genrandom.o: genrandom.c genrandom.h
-	$(CC) -c genrandom.c
-
-testfuncs.o: testfuncs.c testfuncs.h htable.h
-	$(CC) -c testfuncs.c
+	$(CC) $(CFLAGS) $(OBJS) $(TARGETSRC)
 
 isort.o: isort.c isort.h
 	$(CC) $(CFLAGS) -c isort.c
 
-htable.o: htable.c htable.h
-	$(CC) -c htable.c
+$(TEST_ACTUAL): $(TARGET) $(TEST_INPUT)
+	@echo "Collecting output..."
+	cat $(TEST_INPUT) \
+	| ./$(TARGET) 2>&1 \
+	| tr -d "\r" \
+	> $(TEST_ACTUAL)
+
+test: $(TARGEt) $(TEST_ACTUAL) $(TEST_INPUT) $(TEST_EXPECTED)
+	@echo "Comparing..."
+	@$(TEST_CMP) -u $(TEST_ACTUAL) $(TEST_EXPECTED) \
+		&& echo "pass!"
 
 clean:
 	rm *.o $(TARGET)
