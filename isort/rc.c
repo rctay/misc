@@ -53,19 +53,24 @@ int main() {
 	int ret = 0;
 	if ((ret = read_loop(&input)) < 0) {
 		fprintf(stderr, "read loop failed\n");
-		return ret;
+		goto abort_read_loop;
 	}
 
 	size = ret;
 	to_sort = malloc(size * sizeof(int));
 	if (!to_sort) {
 		fprintf(stderr, "malloc failed\n");
-		return -1;
+		ret = -1;
+		goto abort_to_sort;
 	}
 
 	copy_array(input, to_sort, size);
 	insertionSortSwap(to_sort, size);
 	print_array(to_sort, size);
 
-	return 0;
+	free(to_sort);
+abort_to_sort:
+	free(input);
+abort_read_loop:
+	return ret;
 }
