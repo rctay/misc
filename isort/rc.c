@@ -68,6 +68,10 @@ int main() {
 	insertionSortSwap(to_sort, size);
 	print_array(to_sort, size);
 
+	copy_array(input, to_sort, size);
+	insertionSort(to_sort, size);
+	print_array(to_sort, size);
+
 	free(to_sort);
 abort_to_sort:
 	free(input);
