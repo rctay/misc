@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "isort.h"
+
 int read_loop(int **input) {
 	int i = 0,
 		size,
@@ -48,6 +50,7 @@ int main() {
 	}
 
 	size = ret;
+	insertionSortSwap(input, size);
 	print_array(input, size);
 	return 0;
 }
