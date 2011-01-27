@@ -48,8 +48,14 @@ void print_array(int *input, int size) {
 	printf("\n");
 }
 
+void run_sort(int *to_sort, int *buf, int size, void (*sort_func)(int to_sort[], int size)) {
+	copy_array(to_sort, buf, size);
+	(*sort_func)(buf, size);
+	print_array(buf, size);
+}
+
 int main() {
-	int *input, *to_sort, size;
+	int *input, *buf, size;
 	int ret = 0;
 	if ((ret = read_loop(&input)) < 0) {
 		fprintf(stderr, "read loop failed\n");
@@ -57,23 +63,18 @@ int main() {
 	}
 
 	size = ret;
-	to_sort = malloc(size * sizeof(int));
-	if (!to_sort) {
+	buf = malloc(size * sizeof(int));
+	if (!buf) {
 		fprintf(stderr, "malloc failed\n");
 		ret = -1;
-		goto abort_to_sort;
+		goto abort_buf;
 	}
 
-	copy_array(input, to_sort, size);
-	insertionSortSwap(to_sort, size);
-	print_array(to_sort, size);
+	run_sort(input, buf, size, insertionSortSwap);
+	run_sort(input, buf, size, insertionSort);
 
-	copy_array(input, to_sort, size);
-	insertionSort(to_sort, size);
-	print_array(to_sort, size);
-
-	free(to_sort);
-abort_to_sort:
+	free(buf);
+abort_buf:
 	free(input);
 abort_read_loop:
 	return ret;
